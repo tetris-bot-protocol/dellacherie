@@ -8,7 +8,7 @@ pub fn suggest(board: &[[bool; 10]; 40], piece: tbp::Piece) -> Vec<tbp::Move> {
                 kind: piece,
                 orientation,
                 x,
-                y: 38,
+                y: 37,
             };
             if blocked(board, piece) {
                 continue;
