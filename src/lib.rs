@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
+use std::convert::Infallible;
 
-use futures::channel::mpsc::{Receiver, Sender};
 use futures::prelude::*;
 
 use crate::ai::suggest;
@@ -9,9 +9,9 @@ use crate::mechanics::{collapse_lines, place_piece};
 mod ai;
 mod mechanics;
 
-pub async fn main(
-    mut incoming: Receiver<tbp::FrontendMessage>,
-    mut outgoing: Sender<tbp::BotMessage>,
+pub async fn run(
+    mut incoming: impl Stream<Item = tbp::FrontendMessage> + Unpin,
+    mut outgoing: impl Sink<tbp::BotMessage, Error = Infallible> + Unpin,
 ) {
     outgoing
         .send(tbp::BotMessage::Info {

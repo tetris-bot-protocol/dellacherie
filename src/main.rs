@@ -1,25 +1,18 @@
-use futures::channel::mpsc::channel;
-use futures::future::join;
-use futures::prelude::*;
-
-#[async_std::main]
-async fn main() {
-    let (mut send, incoming) = channel(0);
-    async_std::task::spawn(async move {
-        let mut buf = String::new();
-        while async_std::io::stdin().read_line(&mut buf).await.is_ok() {
-            send.send(serde_json::from_str(&buf).unwrap()).await.unwrap();
-            buf.clear();
-        }
+fn main() {
+    let incoming = futures::stream::repeat_with(|| {
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line).unwrap();
+        serde_json::from_str(&line).unwrap()
     });
 
-    let (outgoing, mut recv) = channel(0);
-    let output = async move {
-        while let Some(msg) = recv.next().await {
-            serde_json::to_writer(std::io::stdout(), &msg).unwrap();
-            println!();
-        }
-    };
+    let outgoing = futures::sink::unfold((), |_, msg| {
+        serde_json::to_writer(std::io::stdout(), &msg).unwrap();
+        println!();
+        async { Ok(()) }
+    });
 
-    join(output, dellacherie::main(incoming, outgoing)).await;
+    futures::pin_mut!(incoming);
+    futures::pin_mut!(outgoing);
+
+    futures::executor::block_on(dellacherie::run(incoming, outgoing));
 }
